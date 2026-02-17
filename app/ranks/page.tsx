@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getTradingRanking, getInvestorDailyTrade } from '@/lib/api';
-import { TradingRankingItem, InvestorDailyTradeStock } from '@/types/stock';
 import BottomNav from '@/components/BottomNav';
+import {InvestorDailyTradeStock, TradingRankingItem} from "@/types/stock";
 
 type TabType = 'trade' | 'investor';
 
@@ -288,8 +288,8 @@ export default function RanksPage() {
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5">
                                 <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">거래대금</div>
-                                <div className="font-bold text-gray-900 dark:text-white mb-0.5">{formatAmount(String(item.trading_amount))}</div>
-                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{item.trading_amount.toLocaleString()}원</div>
+                                <div className="font-bold text-gray-900 dark:text-white mb-0.5">{formatAmount(String(item.trading_amount * 1000000))}</div>
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{item.trading_amount.toLocaleString()}백만원</div>
                               </div>
                               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5">
                                 <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">거래량</div>
