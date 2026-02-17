@@ -163,7 +163,7 @@ export default function RanksPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
 
       {/* ── 헤더 + 탭 + 필터 ── */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
@@ -250,7 +250,7 @@ export default function RanksPage() {
       </div>
 
       {/* ── 컨텐츠 ── */}
-      <div className="px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
 
         {/* 거래대금 탭 */}
         {activeTab === 'trade' && (
@@ -384,6 +384,7 @@ export default function RanksPage() {
         )}
       </div>
 
+      <div className="h-16 shrink-0" />
       <BottomNav />
     </div>
   );
