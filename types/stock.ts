@@ -64,39 +64,33 @@ export interface SectorCreateResponse {
   error?: string | null;
 }
 
-// 거래대금 상위 종목
-export interface TradeRankItem {
-  stk_cd: string;           // 종목코드
-  now_rank: string;         // 현재순위
-  pred_rank: string;        // 이전순위
-  stk_nm: string;           // 종목명
-  cur_prc: string;          // 현재가
-  pred_pre_sig: string;     // 전일대비부호
-  pred_pre: string;         // 전일대비
-  flu_rt: string;           // 등락률
-  sel_bid: string;          // 매도호가
-  buy_bid: string;          // 매수호가
-  now_trde_qty: string;     // 현재거래량
-  pred_trde_qty: string;    // 이전거래량
-  trde_prica: string;       // 거래대금
+// 거래대금 순위
+export interface TradingRankingItem {
+  id: number;
+  stock_code: string;
+  stock_name: string;
+  trade_date: string;
+  current_price: string;
+  change_amount: string;
+  change_rate: string;
+  trading_amount: number;
+  trading_volume: number;
+  previous_trading_volume: number;
+  sell_bid: string;
+  buy_bid: string;
+  current_rank: number;
+  previous_rank: number;
 }
 
-export interface TradeRankResponse {
-  cont_yn: string | null;
-  next_key: string | null;
-  trde_prica_upper: TradeRankItem[];
-}
-
-export type MarketType = '000' | '001' | '101'; // 000: 전체, 001: 코스피, 101: 코스닥
-export type MangStkIncls = '0' | '1'; // 0: 불포함, 1: 포함
-export type StexType = '1' | '2' | '3'; // 1: KRX, 2: NXT, 3: 통합
-
-export interface TradeRankParams {
-  mrkt_tp: MarketType;
-  mang_stk_incls: MangStkIncls;
-  stex_tp: StexType;
-  cont_yn?: string;
-  next_key?: string;
+export interface TradingRankingResponse {
+  success: boolean;
+  message: string;
+  data: {
+    trade_date: string;
+    rankings: TradingRankingItem[];
+    total_count: number;
+  };
+  error: string | null;
 }
 
 // 투자자별 순매수 순위

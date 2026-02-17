@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTradeRank, getInvestorDailyTrade } from '@/lib/api';
-import { TradeRankItem, MarketType, MangStkIncls, StexType, InvestorDailyTradeStock } from '@/types/stock';
+import { getTradingRanking, getInvestorDailyTrade } from '@/lib/api';
+import { TradingRankingItem, InvestorDailyTradeStock } from '@/types/stock';
 import BottomNav from '@/components/BottomNav';
 
 type TabType = 'trade' | 'investor';
@@ -11,15 +11,10 @@ export default function RanksPage() {
   const [activeTab, setActiveTab] = useState<TabType>('trade');
 
   // ── 거래대금 상태 ──────────────────────────────────
-  const [ranks, setRanks] = useState<TradeRankItem[]>([]);
+  const [ranks, setRanks] = useState<TradingRankingItem[]>([]);
   const [tradeLoading, setTradeLoading] = useState(true);
   const [tradeError, setTradeError] = useState<string | null>(null);
-  const [tradeLoadingMore, setTradeLoadingMore] = useState(false);
-  const [marketType, setMarketType] = useState<MarketType>('000');
-  const [managementInclude, setManagementInclude] = useState<MangStkIncls>('0');
-  const [tradeExchangeType, setTradeExchangeType] = useState<StexType>('1');
-  const [contYn, setContYn] = useState<string | null>(null);
-  const [nextKey, setNextKey] = useState<string | null>(null);
+  const [tradeDate, setTradeDate] = useState<string>(''); // YYYY-MM-DD, empty = today
 
   // ── 투자자별 상태 ──────────────────────────────────
   const [stocks, setStocks] = useState<InvestorDailyTradeStock[]>([]);
@@ -31,44 +26,27 @@ export default function RanksPage() {
   const [investorExchangeType, setInvestorExchangeType] = useState<'1' | '2' | '3'>('1');
 
   const getToday = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}${month}${day}`;
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
   const today = getToday();
 
   // ── 거래대금 fetch ─────────────────────────────────
-  const fetchRanks = async (isLoadMore = false) => {
+  const fetchRanks = async () => {
     try {
-      if (isLoadMore) {
-        setTradeLoadingMore(true);
-      } else {
-        setTradeLoading(true);
-        setRanks([]);
-      }
-      const data = await getTradeRank({
-        mrkt_tp: marketType,
-        mang_stk_incls: managementInclude,
-        stex_tp: tradeExchangeType,
-        cont_yn: isLoadMore ? contYn || undefined : undefined,
-        next_key: isLoadMore ? nextKey || undefined : undefined,
-      });
-      if (isLoadMore) {
-        setRanks(prev => [...prev, ...data.trde_prica_upper]);
-      } else {
-        setRanks(data.trde_prica_upper);
-      }
-      setContYn(data.cont_yn);
-      setNextKey(data.next_key);
+      setTradeLoading(true);
+      setRanks([]);
+      const data = await getTradingRanking(tradeDate || today);
+      setRanks(data.data.rankings);
       setTradeError(null);
     } catch (err) {
       setTradeError('거래대금 순위 데이터를 불러오는데 실패했습니다.');
       console.error(err);
     } finally {
       setTradeLoading(false);
-      setTradeLoadingMore(false);
     }
   };
 
@@ -96,7 +74,7 @@ export default function RanksPage() {
 
   useEffect(() => {
     fetchRanks();
-  }, [marketType, managementInclude, tradeExchangeType]);
+  }, [tradeDate]);
 
   useEffect(() => {
     if (activeTab === 'investor') {
@@ -122,15 +100,15 @@ export default function RanksPage() {
     return num.toLocaleString();
   };
 
-  const getPriceColor = (sign: string) => {
-    if (sign === '1' || sign === '2') return 'text-red-500';
-    if (sign === '4' || sign === '5') return 'text-blue-500';
+  const getPriceColor = (changeRate: string) => {
+    const rate = parseFloat(changeRate);
+    if (rate > 0) return 'text-red-500';
+    if (rate < 0) return 'text-blue-500';
     return 'text-gray-900 dark:text-white';
   };
 
-  const getRankChange = (nowRank: string, predRank: string) => {
-    const diff = parseInt(predRank) - parseInt(nowRank);
-    if (isNaN(diff)) return { icon: '─', color: 'text-gray-400', change: undefined };
+  const getRankChange = (currentRank: number, previousRank: number) => {
+    const diff = previousRank - currentRank;
     if (diff > 0) return { icon: '▲', color: 'text-red-500', change: diff };
     if (diff < 0) return { icon: '▼', color: 'text-blue-500', change: Math.abs(diff) };
     return { icon: '─', color: 'text-gray-400', change: undefined };
@@ -212,35 +190,24 @@ export default function RanksPage() {
 
         {/* 거래대금 필터 */}
         {activeTab === 'trade' && (
-          <div className="px-4 py-3 space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">시장구분</label>
-              <div className="flex gap-2">
-                <FilterBtn active={marketType === '000'} onClick={() => setMarketType('000')}>전체</FilterBtn>
-                <FilterBtn active={marketType === '001'} onClick={() => setMarketType('001')}>코스피</FilterBtn>
-                <FilterBtn active={marketType === '101'} onClick={() => setMarketType('101')}>코스닥</FilterBtn>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">관리종목</label>
-                <div className="flex gap-2">
-                  <FilterBtn active={managementInclude === '0'} onClick={() => setManagementInclude('0')}>제외</FilterBtn>
-                  <FilterBtn active={managementInclude === '1'} onClick={() => setManagementInclude('1')}>포함</FilterBtn>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">거래소</label>
-                <select
-                  value={tradeExchangeType}
-                  onChange={(e) => setTradeExchangeType(e.target.value as StexType)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold border-0 focus:ring-2 focus:ring-blue-500"
+          <div className="px-4 py-3">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">날짜</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={tradeDate || today}
+                max={today}
+                onChange={(e) => setTradeDate(e.target.value)}
+                className="flex-1 py-2.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold border-0 focus:ring-2 focus:ring-blue-500"
+              />
+              {tradeDate && tradeDate !== today && (
+                <button
+                  onClick={() => setTradeDate('')}
+                  className="py-2.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold"
                 >
-                  <option value="1">KRX</option>
-                  <option value="2">NXT</option>
-                  <option value="3">통합</option>
-                </select>
-              </div>
+                  오늘
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -294,41 +261,39 @@ export default function RanksPage() {
               ranks.length === 0 ? <EmptyState /> : (
                 <div className="space-y-2">
                   {ranks.map((item, index) => {
-                    const rankChange = getRankChange(item.now_rank, item.pred_rank);
-                    const priceColor = getPriceColor(item.pred_pre_sig);
+                    const rankChange = getRankChange(item.current_rank, item.previous_rank);
+                    const priceColor = getPriceColor(item.change_rate);
 
                     return (
                       <div
-                        key={`${item.stk_cd}-${index}`}
+                        key={`${item.stock_code}-${index}`}
                         className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex flex-col items-center min-w-[60px]">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{item.now_rank}</div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{item.current_rank}</div>
                             <div className={`text-xs font-semibold ${rankChange.color} flex items-center gap-0.5`}>
                               <span>{rankChange.icon}</span>
                               {rankChange.change !== undefined && <span>{rankChange.change}</span>}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white truncate mb-0.5">{item.stk_nm}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">{item.stk_cd}</p>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white truncate mb-0.5">{item.stock_name}</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">{item.stock_code}</p>
                             <div className="flex items-baseline gap-2 mb-2">
-                              <span className={`text-lg font-bold ${priceColor}`}>{formatNumber(item.cur_prc)}</span>
-                              <span className={`text-sm font-semibold ${priceColor}`}>
-                                {item.pred_pre_sig === '2' || item.pred_pre_sig === '5' ? '-' : ''}{formatNumber(item.pred_pre)}
-                              </span>
-                              <span className={`text-sm font-semibold ${priceColor}`}>({item.flu_rt}%)</span>
+                              <span className={`text-lg font-bold ${priceColor}`}>{formatNumber(item.current_price)}</span>
+                              <span className={`text-sm font-semibold ${priceColor}`}>{formatNumber(item.change_amount)}</span>
+                              <span className={`text-sm font-semibold ${priceColor}`}>({item.change_rate}%)</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5">
                                 <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">거래대금</div>
-                                <div className="font-bold text-gray-900 dark:text-white mb-0.5">{formatAmount(item.trde_prica)}</div>
-                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{parseInt(item.trde_prica).toLocaleString()}원</div>
+                                <div className="font-bold text-gray-900 dark:text-white mb-0.5">{formatAmount(String(item.trading_amount))}</div>
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{item.trading_amount.toLocaleString()}원</div>
                               </div>
                               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5">
                                 <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">거래량</div>
-                                <div className="font-bold text-gray-900 dark:text-white">{formatNumber(item.now_trde_qty)}</div>
+                                <div className="font-bold text-gray-900 dark:text-white">{item.trading_volume.toLocaleString()}</div>
                               </div>
                             </div>
                           </div>
@@ -336,21 +301,6 @@ export default function RanksPage() {
                       </div>
                     );
                   })}
-
-                  {contYn === 'Y' && nextKey && (
-                    <button
-                      onClick={() => fetchRanks(true)}
-                      disabled={tradeLoadingMore}
-                      className="w-full py-4 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                    >
-                      {tradeLoadingMore ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2" />
-                          불러오는 중...
-                        </>
-                      ) : '더보기'}
-                    </button>
-                  )}
                 </div>
               )
             )}
