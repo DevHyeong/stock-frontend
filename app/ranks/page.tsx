@@ -23,7 +23,8 @@ export default function RanksPage() {
   const [investorType, setInvestorType] = useState<string>('9000');
   const [tradeType, setTradeType] = useState<'1' | '2'>('2');
   const [investorMarketType, setInvestorMarketType] = useState<'001' | '101'>('001');
-  const [investorExchangeType, setInvestorExchangeType] = useState<'1' | '2' | '3'>('1');
+  const [investorExchangeType, setInvestorExchangeType] = useState<'1' | '2' | '3'>('3');
+  const [investorDate, setInvestorDate] = useState<string>(''); // YYYY-MM-DD, empty = today
 
   const getToday = () => {
     const d = new Date();
@@ -33,6 +34,9 @@ export default function RanksPage() {
     return `${year}-${month}-${day}`;
   };
   const today = getToday();
+
+  // API용 날짜 포맷 YYYYMMDD
+  const getApiDate = () => today.replace(/-/g, '');
 
   // ── 거래대금 fetch ─────────────────────────────────
   const fetchRanks = async () => {
@@ -54,9 +58,10 @@ export default function RanksPage() {
   const fetchInvestorData = async () => {
     try {
       setInvestorLoading(true);
+      const apiDate = (investorDate || today).replace(/-/g, '');
       const data = await getInvestorDailyTrade({
-        strt_dt: today,
-        end_dt: today,
+        strt_dt: apiDate,
+        end_dt: apiDate,
         trde_tp: tradeType,
         mrkt_tp: investorMarketType,
         invsr_tp: investorType,
@@ -80,7 +85,7 @@ export default function RanksPage() {
     if (activeTab === 'investor') {
       fetchInvestorData();
     }
-  }, [activeTab, investorType, tradeType, investorMarketType, investorExchangeType]);
+  }, [activeTab, investorType, tradeType, investorMarketType, investorExchangeType, investorDate]);
 
   // ── 포맷 유틸 ─────────────────────────────────────
   const formatNumber = (value: string) => {
@@ -216,6 +221,26 @@ export default function RanksPage() {
         {activeTab === 'investor' && (
           <div className="px-4 py-3 space-y-3">
             <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">날짜</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={investorDate || today}
+                  max={today}
+                  onChange={(e) => setInvestorDate(e.target.value)}
+                  className="flex-1 py-2.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold border-0 focus:ring-2 focus:ring-blue-500"
+                />
+                {investorDate && investorDate !== today && (
+                  <button
+                    onClick={() => setInvestorDate('')}
+                    className="py-2.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold"
+                  >
+                    오늘
+                  </button>
+                )}
+              </div>
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">투자자 구분</label>
               <div className="flex gap-2">
                 <FilterBtn active={investorType === '9000'} onClick={() => setInvestorType('9000')}>외국인</FilterBtn>
@@ -327,7 +352,7 @@ export default function RanksPage() {
 
                   <div className="space-y-2">
                     {stocks.map((item, index) => {
-                      const priceColor = getPriceColor(item.pre_sig);
+                      const priceColor = getPriceColor(item.pre_rt);
                       const isPositive = tradeType === '2';
 
                       return (
@@ -345,7 +370,7 @@ export default function RanksPage() {
                               <div className="flex items-baseline gap-2 mb-3">
                                 <span className={`text-lg font-bold ${priceColor}`}>{formatNumber(item.cur_prc)}</span>
                                 <span className={`text-sm font-semibold ${priceColor}`}>
-                                  {item.pre_sig === '2' || item.pre_sig === '5' ? '-' : ''}{formatNumber(item.pred_pre)}
+                                  {formatNumber(item.pred_pre)}
                                 </span>
                                 <span className={`text-sm font-semibold ${priceColor}`}>({item.pre_rt}%)</span>
                               </div>
@@ -355,16 +380,16 @@ export default function RanksPage() {
                                     ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
                                     : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                                 }`}>
-                                  <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">순매수 금액</div>
+                                  <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">{isPositive ? '순매수' : '순매도'} 금액</div>
                                   <div className={`font-bold text-sm ${isPositive ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                    {formatAmount(item.netslmt_amt)}
+                                    {formatAmount(String(parseInt(item.netslmt_amt) * 10000))}
                                   </div>
                                   <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {formatNumber(item.netslmt_amt)}원
+                                    {formatNumber(item.netslmt_amt)}만원
                                   </div>
                                 </div>
                                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2">
-                                  <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">순매수 수량</div>
+                                  <div className="text-gray-500 dark:text-gray-400 text-[10px] mb-0.5">{isPositive ? '순매수' : '순매도'} 수량</div>
                                   <div className="font-bold text-gray-900 dark:text-white text-sm">{formatNumber(item.netslmt_qty)}</div>
                                   <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                                     평균가: {formatNumber(item.prsm_avg_pric)}

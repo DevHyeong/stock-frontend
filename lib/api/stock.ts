@@ -43,14 +43,11 @@ export async function getInvestorDailyTrade(params: InvestorDailyTradeParams): P
       stex_tp: params.stex_tp,
     });
 
-    // API 응답 구조에 따라 조정 필요
-    const data = await fetchApi<InvestorDailyTradeStock[] | { data: InvestorDailyTradeStock[] }>(
+    const response = await fetchApi<{ success: boolean; message: string; data: InvestorDailyTradeStock[] }>(
       `/api/v1/stock/investor-daily-trade?${queryParams.toString()}`
     );
 
-    if (Array.isArray(data)) return data;
-    if ('data' in data && Array.isArray(data.data)) return data.data;
-    return [];
+    return response.data ?? [];
   } catch (error) {
     console.error('Failed to fetch investor daily trade:', error);
     throw error;
