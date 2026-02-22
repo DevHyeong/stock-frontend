@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { getStockList, searchStocks } from '@/lib/api';
 import { Stock } from '@/types/stock';
-import BottomNav from '@/components/BottomNav';
 
 export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -37,10 +37,10 @@ export default function Home() {
   }, [searchQuery, stocks]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-16 lg:pb-0 lg:pl-64">
       {/* 상단 헤더 - 고정 */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
             종목 검색
           </h1>
@@ -50,7 +50,7 @@ export default function Home() {
         </div>
 
         {/* 검색바 */}
-        <div className="px-4 pb-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 pb-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@ export default function Home() {
       </div>
 
       {/* 컨텐츠 영역 */}
-      <div className="px-4 py-4">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4">
         {loading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
@@ -115,11 +115,12 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredStocks.map((stock) => (
-                  <div
+                  <Link
                     key={stock.stock_code}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform"
+                    href={`/stocks/${stock.stock_code}`}
+                    className="block bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
@@ -152,7 +153,7 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -160,7 +161,6 @@ export default function Home() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

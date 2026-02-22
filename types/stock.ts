@@ -93,6 +93,64 @@ export interface TradingRankingResponse {
   error: string | null;
 }
 
+// 종목 상세
+export interface StockDetail {
+  stock_code: string;
+  stock_name: string;
+  market: string;
+  sector: string;
+  current_price: number;
+  change_amount: number;
+  change_rate: number;
+  open_price: number;
+  high_price: number;
+  low_price: number;
+  volume: number;
+  trading_amount: number;
+  market_cap: number;
+  per: number;
+  pbr: number;
+  week52_high: number;
+  week52_low: number;
+}
+
+export interface PricePoint {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  price: number; // close
+  volume: number;
+}
+
+export interface NewsArticle {
+  id: number;
+  title: string;
+  source: string;
+  published_at: string;
+  summary: string;
+}
+
+// 차트 (일봉)
+export interface ChartDayItem {
+  dt: string;           // 날짜 YYYYMMDD
+  cur_prc: string;      // 현재가 (종가)
+  open_pric: string;    // 시가
+  high_pric: string;    // 고가
+  low_pric: string;     // 저가
+  trde_qty: string;     // 거래량
+  trde_prica: string;   // 거래대금 (백만원)
+  pred_pre: string;     // 전일대비
+  pred_pre_sig: string; // 전일대비부호 (2:상승, 5:하락)
+  trde_tern_rt: string; // 거래회전율
+}
+
+export interface ChartDayResponse {
+  cont_yn: string | null;
+  next_key: string | null;
+  items: ChartDayItem[];
+}
+
 // 투자자별 순매수 순위
 export interface InvestorDailyTradeStock {
   stk_cd: string;           // 종목코드

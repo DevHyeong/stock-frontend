@@ -1,4 +1,4 @@
-import { InvestorDailyTradeParams, InvestorDailyTradeStock, Stock, StockListResponse } from '@/types/stock';
+import { ChartDayItem, ChartDayResponse, InvestorDailyTradeParams, InvestorDailyTradeStock, Stock, StockListResponse } from '@/types/stock';
 import { mockStocks } from '../mockData';
 import { fetchApi, USE_MOCK } from './client';
 
@@ -30,6 +30,12 @@ export function searchStocks(query: string, stocks: Stock[]): Stock[] {
       stock.stock_code.toLowerCase().includes(lowerQuery) ||
       stock.stock_name.toLowerCase().includes(lowerQuery)
   );
+}
+
+export async function getChartDay(code: string, startDt: string, endDt: string): Promise<ChartDayItem[]> {
+  const params = new URLSearchParams({ start_dt: startDt, end_dt: endDt });
+  const response = await fetchApi<ChartDayResponse>(`/api/v1/chart/${code}/day?${params.toString()}`);
+  return response.items ?? [];
 }
 
 export async function getInvestorDailyTrade(params: InvestorDailyTradeParams): Promise<InvestorDailyTradeStock[]> {
