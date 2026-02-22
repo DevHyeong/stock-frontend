@@ -112,6 +112,67 @@ export interface StockDetail {
   pbr: number;
   week52_high: number;
   week52_low: number;
+  eps?: number;             // EPS (주당순이익)
+  roe?: number;             // ROE (자기자본이익률)
+  bps?: number;             // BPS (주당순자산가치)
+  upper_limit?: number;     // 상한가
+  lower_limit?: number;     // 하한가
+}
+
+// 종목 기본 정보 API 응답
+export interface StockBasicInfo {
+  stk_cd: string;           // 종목코드
+  stk_nm: string;           // 종목명
+  setl_mm?: string;         // 결산월
+  fav?: string;             // 액면가
+  fav_unit?: string;        // 액면가 단위
+  cap?: string;             // 자본금 (억원)
+  flo_stk?: string;         // 유통주식수 (천주)
+  dstr_stk?: string;        // 시가총액 (억원)
+  dstr_rt?: string;         // 유통비율
+  crd_rt?: string;          // 신용비율
+  mac?: string;             // 시가총액 (백만원)
+  mac_wght?: string;        // 시가총액 비중
+  for_exh_rt?: string;      // 외국인 소진율
+  repl_pric?: string;       // 대용가
+  cur_prc: string;          // 현재가
+  pre_sig: string;          // 전일대비부호 (2:상승, 4:보합, 5:하락)
+  pred_pre: string;         // 전일대비
+  flu_rt: string;           // 등락률
+  trde_qty: string;         // 거래량
+  trde_pre?: string;        // 거래증감
+  open_pric: string;        // 시가
+  high_pric: string;        // 고가
+  low_pric: string;         // 저가
+  upl_pric?: string;        // 상한가
+  lst_pric?: string;        // 하한가
+  base_pric?: string;       // 기준가
+  exp_cntr_pric?: string;   // 예상 체결가
+  exp_cntr_qty?: string;    // 예상 체결량
+  oyr_hgst?: string;        // 연중 최고가
+  oyr_lwst?: string;        // 연중 최저가
+  "250hgst"?: string;       // 250일 최고가 (52주)
+  "250hgst_pric_dt"?: string; // 250일 최고가 날짜
+  "250hgst_pric_pre_rt"?: string; // 250일 최고가 대비율
+  "250lwst"?: string;       // 250일 최저가 (52주)
+  "250lwst_pric_dt"?: string; // 250일 최저가 날짜
+  "250lwst_pric_pre_rt"?: string; // 250일 최저가 대비율
+  per?: string;             // PER
+  eps?: string;             // EPS (주당순이익)
+  roe?: string;             // ROE (자기자본이익률)
+  pbr?: string;             // PBR
+  ev?: string;              // EV
+  bps?: string;             // BPS (주당순자산가치)
+  sale_amt?: string;        // 매출액 (억원)
+  bus_pro?: string;         // 영업이익 (억원)
+  cup_nga?: string;         // 당기순이익 (억원)
+}
+
+export interface StockBasicInfoResponse {
+  success: boolean;
+  message: string;
+  data: StockBasicInfo | null;
+  error?: string | null;
 }
 
 export interface PricePoint {

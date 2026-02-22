@@ -3,12 +3,65 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMockStockDetail, getMockNews } from '@/lib/mockData';
-import { getChartDay } from '@/lib/api/stock';
-import { StockDetail, PricePoint, NewsArticle, ChartDayItem } from '@/types/stock';
+import { getChartDay, getStockBasicInfo } from '@/lib/api/stock';
+import { StockDetail, PricePoint, NewsArticle, ChartDayItem, StockBasicInfo } from '@/types/stock';
 
 type Period = '1W' | '1M' | '3M' | '6M' | '1Y';
 
 const PERIODS: Period[] = ['1W', '1M', '3M', '6M', '1Y'];
+
+function convertBasicInfoToDetail(info: StockBasicInfo): StockDetail {
+  // 부호 제거 함수 (+ 또는 - 제거)
+  const cleanPrice = (val: string) => val.replace(/^[+-]/, '');
+
+  // 현재가는 부호가 있을 수 있으므로 제거
+  const currentPrice = parseInt(cleanPrice(info.cur_prc), 10);
+
+  // 전일대비: 부호(pre_sig)에 따라 음수/양수 결정
+  // 2: 상승(+), 4: 보합(0), 5: 하락(-)
+  let changeAmount = parseInt(cleanPrice(info.pred_pre), 10);
+  if (info.pre_sig === '5') changeAmount = -changeAmount;
+  else if (info.pre_sig === '4') changeAmount = 0;
+
+  // 등락률
+  const changeRate = parseFloat(cleanPrice(info.flu_rt));
+
+  // 시가총액: dstr_stk(억원) 또는 mac(백만원) 사용
+  let marketCap = 0;
+  if (info.dstr_stk) {
+    marketCap = parseInt(info.dstr_stk, 10) * 100000000; // 억원 -> 원
+  } else if (info.mac) {
+    marketCap = parseInt(info.mac, 10) * 1000000; // 백만원 -> 원
+  }
+
+  // 거래대금 = 현재가 * 거래량 (대략적 계산, API에 직접적인 필드가 없음)
+  const tradingAmount = currentPrice * parseInt(info.trde_qty, 10);
+
+  return {
+    stock_code: info.stk_cd,
+    stock_name: info.stk_nm,
+    market: '미분류', // basic-info API에는 시장구분이 없으므로 별도 조회 필요
+    sector: '미분류', // basic-info API에는 섹터 정보가 없으므로 별도 조회 필요
+    current_price: currentPrice,
+    change_amount: changeAmount,
+    change_rate: changeRate,
+    open_price: parseInt(cleanPrice(info.open_pric), 10),
+    high_price: parseInt(cleanPrice(info.high_pric), 10),
+    low_price: parseInt(cleanPrice(info.low_pric), 10),
+    volume: parseInt(info.trde_qty, 10),
+    trading_amount: tradingAmount,
+    market_cap: marketCap,
+    per: info.per ? parseFloat(info.per) : 0,
+    pbr: info.pbr ? parseFloat(info.pbr) : 0,
+    week52_high: info['250hgst'] ? parseInt(cleanPrice(info['250hgst']), 10) : 0,
+    week52_low: info['250lwst'] ? parseInt(cleanPrice(info['250lwst']), 10) : 0,
+    eps: info.eps ? parseInt(info.eps, 10) : undefined,
+    roe: info.roe ? parseFloat(info.roe) : undefined,
+    bps: info.bps ? parseInt(info.bps, 10) : undefined,
+    upper_limit: info.upl_pric ? parseInt(cleanPrice(info.upl_pric), 10) : undefined,
+    lower_limit: info.lst_pric ? parseInt(cleanPrice(info.lst_pric), 10) : undefined,
+  };
+}
 
 function toDateString(date: Date): string {
   const y = date.getFullYear();
@@ -202,11 +255,11 @@ function CandlestickChart({ data }: { data: PricePoint[] }) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="text-sm font-medium text-gray-900 dark:text-white">{value}</span>
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</div>
+      <div className="text-sm font-semibold text-gray-900 dark:text-white">{value}</div>
     </div>
   );
 }
@@ -223,13 +276,26 @@ export default function StockDetailPage({ params }: { params: Promise<{ code: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setDetail(getMockStockDetail(code));
-      setNews(getMockNews(code));
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+    async function fetchStockDetail() {
+      try {
+        setLoading(true);
+        const basicInfo = await getStockBasicInfo(code);
+        if (basicInfo) {
+          setDetail(convertBasicInfoToDetail(basicInfo));
+        } else {
+          setDetail(null);
+        }
+        // 뉴스는 아직 Mock 데이터 사용
+        setNews(getMockNews(code));
+      } catch (error) {
+        console.error('Failed to fetch stock detail:', error);
+        setDetail(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStockDetail();
   }, [code]);
 
   useEffect(() => {
@@ -345,18 +411,34 @@ export default function StockDetailPage({ params }: { params: Promise<{ code: st
       </div>
 
       {/* Today's stats */}
-      <div className="bg-white dark:bg-gray-800 max-w-7xl mx-auto mt-2 px-4 lg:px-8 py-1">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-0">
-          <InfoRow label="시가" value={`${formatNumber(detail.open_price)}원`} />
-          <InfoRow label="거래량" value={formatAmount(detail.volume)} />
-          <InfoRow label="고가" value={`${formatNumber(detail.high_price)}원`} />
-          <InfoRow label="거래대금" value={formatAmount(detail.trading_amount)} />
-          <InfoRow label="저가" value={`${formatNumber(detail.low_price)}원`} />
-          <InfoRow label="시가총액" value={formatAmount(detail.market_cap)} />
-          <InfoRow label="52주 최고" value={`${formatNumber(detail.week52_high)}원`} />
-          <InfoRow label="PER" value={`${detail.per}배`} />
-          <InfoRow label="52주 최저" value={`${formatNumber(detail.week52_low)}원`} />
-          <InfoRow label="PBR" value={`${detail.pbr}배`} />
+      <div className="bg-white dark:bg-gray-800 max-w-7xl mx-auto mt-2 px-4 lg:px-8 py-4">
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-3">상세 정보</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <InfoCard label="시가" value={`${formatNumber(detail.open_price)}원`} />
+          <InfoCard label="고가" value={`${formatNumber(detail.high_price)}원`} />
+          <InfoCard label="저가" value={`${formatNumber(detail.low_price)}원`} />
+          <InfoCard label="거래량" value={formatAmount(detail.volume)} />
+          <InfoCard label="거래대금" value={formatAmount(detail.trading_amount)} />
+          <InfoCard label="시가총액" value={formatAmount(detail.market_cap)} />
+          <InfoCard label="52주 최고" value={`${formatNumber(detail.week52_high)}원`} />
+          <InfoCard label="52주 최저" value={`${formatNumber(detail.week52_low)}원`} />
+          {detail.upper_limit && (
+            <InfoCard label="상한가" value={`${formatNumber(detail.upper_limit)}원`} />
+          )}
+          {detail.lower_limit && (
+            <InfoCard label="하한가" value={`${formatNumber(detail.lower_limit)}원`} />
+          )}
+          <InfoCard label="PER" value={detail.per > 0 ? `${detail.per.toFixed(2)}배` : '-'} />
+          <InfoCard label="PBR" value={detail.pbr > 0 ? `${detail.pbr.toFixed(2)}배` : '-'} />
+          {detail.eps && (
+            <InfoCard label="EPS" value={`${formatNumber(detail.eps)}원`} />
+          )}
+          {detail.roe && (
+            <InfoCard label="ROE" value={`${detail.roe.toFixed(1)}%`} />
+          )}
+          {detail.bps && (
+            <InfoCard label="BPS" value={`${formatNumber(detail.bps)}원`} />
+          )}
         </div>
       </div>
 

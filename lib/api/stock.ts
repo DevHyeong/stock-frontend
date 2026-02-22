@@ -1,4 +1,4 @@
-import { ChartDayItem, ChartDayResponse, InvestorDailyTradeParams, InvestorDailyTradeStock, Stock, StockListResponse } from '@/types/stock';
+import { ChartDayItem, ChartDayResponse, InvestorDailyTradeParams, InvestorDailyTradeStock, Stock, StockBasicInfo, StockBasicInfoResponse, StockListResponse } from '@/types/stock';
 import { mockStocks } from '../mockData';
 import { fetchApi, USE_MOCK } from './client';
 
@@ -56,6 +56,19 @@ export async function getInvestorDailyTrade(params: InvestorDailyTradeParams): P
     return response.data ?? [];
   } catch (error) {
     console.error('Failed to fetch investor daily trade:', error);
+    throw error;
+  }
+}
+
+export async function getStockBasicInfo(stockCode: string): Promise<StockBasicInfo | null> {
+  try {
+    const response = await fetchApi<StockBasicInfoResponse>(
+      `/api/v1/stock/basic-info?stk_cd=${stockCode}`
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch stock basic info:', error);
     throw error;
   }
 }
